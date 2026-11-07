@@ -84,7 +84,15 @@ contract SimpleAccount is Initializable, UUPSUpgradeable {
 
         // Pay the EntryPoint for gas if we have insufficient prefund
         if (missingAccountFunds > 0) {
-            payable(ENTRY_POINT).transfer(missingAccountFunds);
+            (bool success, bytes memory returndata) =
+            payable(ENTRY_POINT).call{value: missingAccountFunds}("");
+            // Empty returndata is notmal when sending ETH successfully
+            if (!success) {
+                assembly ("memory-safe") {
+                    revert(add(returndata, 0x20), mload(returndata))
+                }
+            }
+
         }
 
         // Validate owner signature over the UserOperation hash
